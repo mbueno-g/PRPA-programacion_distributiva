@@ -71,9 +71,14 @@ class Player():
         #return not(type(matrix[p[1]//K-1][p[0]//K]) == type(Wall([0,0],200)))
     
     def move(self,matrix):
+        print(self.points)
         if self.canMove(matrix):
             d = directions[self.dir]
             self.pos = [self.pos[0]+d[0],self.pos[1]+d[1]]
+            o = matrix[self.pos[1] //K][self.pos[0]//K]
+            if (type(o) == type(Object([0,0])) and o.taken == False):
+                self.points += 1
+                o.taken = True
 
 class Wall():
     def __init__(self,pos):
@@ -86,7 +91,7 @@ class Wall():
 class Object():
     def __init__(self,pos):
         self.pos = pos
-        self.img = load_image("pineapple.png",10,True)
+        self.img = load_image("pineapple.png",20,True)
         self.taken = False
         
     def paint(self,screen):
