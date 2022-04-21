@@ -46,6 +46,13 @@ class Player():
         
     def paint(self,screen):
         screen.blit(self.img[self.dir], (self.pos[0]+3,self.pos[1]+3))
+        screen.blit(load_image("pineapple.png",20,True),(K//4,K//4))
+        font = pygame.font.Font('freesansbold.ttf', 4*K//5)
+        t = "x" + str(self.points)
+        text = font.render(t, True, (255,255,150))
+        textRect = text.get_rect()
+        textRect.center = (font.size(t)[0]//2 + 25,font.size(t)[1]//2 + 5)
+        screen.blit(text, textRect)
     
     def canMove(self,matrix):
         d = directions[self.dir]
@@ -68,14 +75,13 @@ class Player():
             if not(type(matrix[esquina2[1]//K][esquina2[0]//K]) == type(Wall([0,0]))):
                 return True
         return False
-        #return not(type(matrix[p[1]//K-1][p[0]//K]) == type(Wall([0,0],200)))
     
     def move(self,matrix):
         print(self.points)
         if self.canMove(matrix):
             d = directions[self.dir]
             self.pos = [self.pos[0]+d[0],self.pos[1]+d[1]]
-            o = matrix[self.pos[1] //K][self.pos[0]//K]
+            o = matrix[(self.pos[1] + K//2)//K][(self.pos[0] +K//2)//K]
             if (type(o) == type(Object([0,0])) and o.taken == False):
                 self.points += 1
                 o.taken = True
@@ -104,6 +110,7 @@ class Object():
 def readFile(filename):
     matrix = []
     players = []
+    nPiñas = 0
     f = open(dirMap + filename, "r")
     for y,line in enumerate(f):
         fila = []
@@ -116,11 +123,12 @@ def readFile(filename):
                 players.append(Player((x*K,y*K)))
             elif cell == "3":
                 fila.append(Object((x*K,y*K)))
+                nPiñas += 1
             else:
                 fila.append(cell)
         matrix.append(fila)
     f.close()
-    return matrix,players
+    return matrix,players,nPiñas
 
 #------------------------------------------------------------------------------
 #Update screen
@@ -134,13 +142,13 @@ def paintAll(screen,mapa,players):
                 pass
     for p in players:
         p.paint(screen)
-        
+
 #------------------------------------------------------------------------------
 #Main
 
 def main():
     pygame.init()
-    mapa,players = readFile(filename)
+    mapa,players,nPiñas = readFile(filename)
     SCREEN_WIDTH = K*len(mapa[0])
     SCREEN_HEIGHT = K*len(mapa)
     
@@ -172,6 +180,12 @@ def main():
         pygame.display.flip()
         screen.fill((75, 75, 75))
         paintAll(screen,mapa,players)
+        
+        if players[0].points == nPiñas:
+            pygame.display.flip()
+            screen.fill((75, 75, 75))
+            paintAll(screen,mapa,players)
+            break
         #accesories(screen,M,time)
 
 #------------------------------------------------------------------------------
