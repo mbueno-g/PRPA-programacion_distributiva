@@ -77,7 +77,6 @@ class Player():
         return False
     
     def move(self,matrix):
-        print(self.points)
         if self.canMove(matrix):
             d = directions[self.dir]
             self.pos = [self.pos[0]+d[0],self.pos[1]+d[1]]
