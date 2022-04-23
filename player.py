@@ -2,6 +2,7 @@ from multiprocessing.connection import Client
 import traceback
 import pygame
 import sys, os
+import time
 
 
 YELLOW = 0
@@ -43,6 +44,8 @@ def readFile(filename):
     matrix = []
     players = []
     nPiñas = 0
+    side = 0
+    list_piñas = []
     f = open(dirMap + filename, "r")
     for y,line in enumerate(f):
         fila = []
@@ -52,24 +55,27 @@ def readFile(filename):
                 fila.append(Wall((x*K,y*K)))
             elif cell == "2":
                 fila.append(cell)
-                players.append(Player((x*K,y*K)))
+                players.append(Player((x*K,y*K), side))
+                side += 1
             elif cell == "3":
                 fila.append(Object((x*K,y*K)))
                 nPiñas += 1
+                list_piñas.append((x*K,y*K))
             else:
                 fila.append(cell)
         matrix.append(fila)
     f.close()
-    return matrix,players,nPiñas
+    return matrix,players,nPiñas,list_piñas
 
 #------------------------------------------------------------------------------
 
 class Player():
-    def __init__(self, side):
+    def __init__(self, pos, side):
         self.side = side
-        self.pos = [70+30*side,70+30*side]
+        self.pos = pos
         self.dir = "C"
         self.img = {d:load_image("pacman{}.png".format(d),24,True) for d in ["N","S","E","O","C"]}
+        self.img2 = {d:load_image("pacman2{}.png".format(d),24,True) for d in ["N","S","E","O","C"]}
 
     def get_pos(self):
         return self.pos
@@ -80,11 +86,17 @@ class Player():
     def set_pos(self, pos):
         self.pos = pos
 
+    def set_dir(self, direccion):
+        self.dir = direccion
+
     def __str__(self):
         return f"P<{SIDES[self.side], self.pos}>"
 
-    def paint(self,screen):
-        screen.blit(self.img[self.dir], (self.pos[0]+3,self.pos[1]+3))
+    def paint(self,screen, piñas):
+        if (self.side) == 0:
+            screen.blit(self.img[self.dir], (self.pos[0]+3,self.pos[1]+3))
+        else:
+            screen.blit(self.img2[self.dir], (self.pos[0]+3,self.pos[1]+3))
 
 
 class Wall():
@@ -93,7 +105,7 @@ class Wall():
         self.img = load_image("wall.png",K)
 
 
-    def paint(self,screen):
+    def paint(self,screen, piñas):
         screen.blit(self.img, (self.pos[0],self.pos[1]))
 
 
@@ -104,8 +116,9 @@ class Object():
         self.img = load_image("pineapple.png",20,True)
 
 
-    def paint(self,screen):
-        if not(self.taken):
+    def paint(self,screen, piñas):
+        ind = piñas.index(tuple(self.pos))
+        if piñas[ind] != -1:
             screen.blit(self.img, (self.pos[0]+10,self.pos[1]+10))
 
 
@@ -113,7 +126,7 @@ class Game():
     def __init__(self):
         self.score = [0,0]
         self.running = True
-        self.matrix, self.players, self.nPiñas = readFile(filename)
+        self.matrix, self.players, self.nPiñas, self.list_piñas = readFile(filename)
         self.size = [K*len(self.matrix[0]), K*len(self.matrix)]
 
     def get_player(self, side):
@@ -122,15 +135,27 @@ class Game():
     def set_pos_player(self, side, pos):
         self.players[side].set_pos(pos)
 
+    def set_dir_player(self, side, direccion):
+        self.players[side].set_dir(direccion)
+
     def get_score(self):
         return self.score
 
     def set_score(self, score):
         self.score = score
 
+    def set_matrix(self, matrix):
+        self.matrix = matrix
+    
+    def set_list_piñas(self, list_piñas):
+        self.list_piñas = list_piñas
+
     def update(self, gameinfo):
         self.set_pos_player(YELLOW, gameinfo['pos_left_player'])
         self.set_pos_player(BLUE, gameinfo['pos_right_player'])
+        self.set_list_piñas(gameinfo['list_piñas'])
+        self.set_dir_player(YELLOW, gameinfo['dir_yellow'])
+        self.set_dir_player(BLUE, gameinfo['dir_blue'])
         self.set_score(gameinfo['score'])
         self.running = gameinfo['is_running']
 
@@ -175,11 +200,11 @@ class Display():
         for line in self.game.matrix:
             for cosa in line:
                 try:
-                    cosa.paint(self.screen)
+                    cosa.paint(self.screen, self.game.list_piñas)
                 except:
                     pass
         for p in self.game.players:
-            p.paint(self.screen)
+            p.paint(self.screen, self.game.list_piñas)
 
         self.screen.blit(load_image("pineapple.png",20,True),(K//4,K//4))
         font = pygame.font.Font('freesansbold.ttf', 4*K//5)
@@ -188,7 +213,7 @@ class Display():
         textRect = text.get_rect()
         textRect.center = (font.size(t)[0]//2 + 25,font.size(t)[1]//2 + 5)
         self.screen.blit(text, textRect)
-        self.screen.blit(load_image("pineapple.png",20,True),(self.game.size[0] - K//4,K//4))
+        self.screen.blit(load_image("pineapple.png",20,True),(self.game.size[0] - K,K//4))
         t1 = str(self.game.score[1]) + "x"
         text1 = font.render(t1, True, (255,255,150))
         textRect1 = text1.get_rect()
@@ -210,7 +235,7 @@ def main(ip_address,port):
             game = Game()
             side,gameinfo = conn.recv()
             print(f"I am playing {SIDESSTR[side]}")
-            #game.update(gameinfo)
+            game.update(gameinfo)
             display = Display(game)
             while game.is_running():
                 events = display.analyze_events(side)
@@ -220,14 +245,21 @@ def main(ip_address,port):
                         game.stop()
                 conn.send("next")
                 gameinfo = conn.recv()
-                #game.update(gameinfo)
+                game.update(gameinfo)
                 display.refresh()
                 display.tick()
+
+            ganador = YELLOW
+            if (game.score[0] < game.score[1]):
+                ganador = BLUE
+            elif (game.score[0] == game.score[1]):
+                ganador = "EMPATE"
+            print("El ganador es " + str(ganador))
+            time.sleep(5)
     except:
         traceback.print_exc()
     finally:
         pygame.quit()
-
 
 if __name__=="__main__":
     ip_address = "10.8.29"

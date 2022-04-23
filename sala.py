@@ -22,17 +22,20 @@ class Player():
     def __init__(self, side,p):
         self.side = side
         self.dir = "C"
-        self.pos = p 
+        self.pos = p
 
     def get_pos(self):
         return self.pos
 
     def get_side(self):
         return self.side
+    
+    def get_dir(self):
+        return self.dir
 
     def canMove(self,matrix):
         d = directions[self.dir]
-        p = [self.pos[0]+d[0],self.pos[1]+d[1]]
+        p = [self.pos[0]+K*d[0],self.pos[1]+K*d[1]]
         n = 3
         if self.dir in ["N","C"]:
             esquina1 = [p[0]+n,p[1]+n]
@@ -51,17 +54,19 @@ class Player():
             if not(type(matrix[esquina2[1]//K][esquina2[0]//K]) == type(Wall([0,0]))):
                 return True
         return False
-    
-    def move(self,matrix,points,lock):
+      
+        
+    def move(self, matrix, points, piÃ±as):
         if self.canMove(matrix):
             d = directions[self.dir]
-            self.pos = [self.pos[0]+d[0],self.pos[1]+d[1]]
-            o = matrix[(self.pos[1] + K//2)//K][(self.pos[0] +K//2)//K]
-            if (type(o) == type(Object([0,0])) and o.taken == False):
-                lock.acquire()
+            self.pos = [self.pos[0]+K*d[0],self.pos[1]+K*d[1]]
+            #o = matrix[(self.pos[1] + K//2)//K][(self.pos[0] +K//2)//K]
+            o = matrix[(self.pos[1])//K][(self.pos[0])//K]
+            if (type(o) == type(Object([0,0])) and tuple(self.pos) in piÃ±as):
                 points[self.side] += 1
-                lock.release()
-                o.taken = True
+                ind = piÃ±as.index(tuple(self.pos))
+                piÃ±as[ind] = -1
+        
     def __str__(self):
         return f"P<{SIDESSTR[self.side]}, {self.pos}>"
 
@@ -82,8 +87,10 @@ class Game():
         self.score = manager.list([0,0])
         self.running = Value('i', 1) # 1 running
         self.lock = Lock()
-        m, players, self.nPiñas = readFile()
-        self.matrix = manager.lista([manager.list(lista) for lista in m])
+        m, players, self.nPiÃ±as, list_piÃ±as = readFile(filename)
+        self.list_piÃ±as = manager.list(list_piÃ±as)
+        self.size = [K*len(m[0]), K*len(m)]
+        self.matrix = manager.list([manager.list(lista) for lista in m])
         self.players = manager.list([Player(YELLOW,players[0]), Player(BLUE,players[1])])
 
     def get_player(self, side):
@@ -91,13 +98,16 @@ class Game():
 
     def get_score(self):
         return list(self.score)
+    
+    def get_list_piÃ±as(self):
+        return list(self.list_piÃ±as)
 
     def is_running(self):
         return self.running.value == 1
 
     def isComplete(self):
         self.lock.acquire()
-        boolean = self.score[0] + self.score[1] == self.nPiñas
+        boolean = self.score[0] + self.score[1] == self.nPiÃ±as
         self.lock.release()
         return boolean     
             
@@ -106,15 +116,19 @@ class Game():
 
     def changeDir(self, player, direction):
         self.lock.acquire()
-        p = self.players[player]
-        p.dir = direction
-        self.players[player] = p
+        pl = self.players[player]
+        pl.dir = direction
+        pl.move(self.matrix, self.score, self.list_piÃ±as)
+        self.players[player] = pl
         self.lock.release()
 
     def get_info(self):
         info = {
             'pos_left_player': self.players[YELLOW].get_pos(),
             'pos_right_player': self.players[BLUE].get_pos(),
+            'list_piÃ±as' : self.get_list_piÃ±as(),
+            'dir_yellow' : self.players[YELLOW].get_dir(),
+            'dir_blue' : self.players[BLUE].get_dir(),
             'score': list(self.score),
             'is_running': self.running.value == 1
         }
@@ -124,12 +138,12 @@ class Game():
         return f"G<{self.players[YELLOW]}:{self.players[BLUE]}:{self.running.value}>"
 
 #------------------------------------------------------------------------------
-#Función de procesos
+#FunciÃ³n de procesos
 
 def player(side, conn, game):
     try:
         print(f"starting player {SIDESSTR[side]}:{game.get_info()}")
-        conn.send( (side, game.get_info()) )
+        conn.send((side, game.get_info()) )
         while game.is_running():
             command = ""
             while command != "next":
@@ -145,7 +159,6 @@ def player(side, conn, game):
                 elif command == "quit" or game.isComplete():
                     game.stop()
             conn.send(game.get_info())
-            game.get_player(side).move(game.matrix,game.score,game.lock)
     except:
         traceback.print_exc()
         conn.close()
@@ -157,7 +170,8 @@ def player(side, conn, game):
 def readFile(filename):
     matrix = []
     players = []
-    nPiñas = 0
+    nPiÃ±as = 0
+    list_piÃ±as = []
     f = open(dirMap + filename, "r")
     for y,line in enumerate(f):
         fila = []
@@ -170,20 +184,21 @@ def readFile(filename):
                 players.append([x*K,y*K])
             elif cell == "3":
                 fila.append(Object((x*K,y*K)))
-                nPiñas += 1
+                nPiÃ±as += 1
+                list_piÃ±as.append((x*K,y*K))
             else:
                 fila.append(cell)
         matrix.append(fila)
     f.close()
-    return matrix,players,nPiñas
+    return matrix,players,nPiÃ±as,list_piÃ±as
 
 #------------------------------------------------------------------------------
 #Main
 
-def main(ip_address):
+def main(ip_address, port):
     manager = Manager()
     try:
-        with Listener((ip_address, 6020),
+        with Listener((ip_address, port),
                       authkey=b'secret password') as listener:
             n_player = 0
             players = [None, None]
