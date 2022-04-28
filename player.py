@@ -43,9 +43,9 @@ def load_image(nombre,fit, alpha=False):
 def readFile(filename):
     matrix = []
     players = []
-    nPiñas = 0
+    nPinas = 0
     side = 0
-    list_piñas = []
+    list_pinas = []
     f = open(dirMap + filename, "r")
     for y,line in enumerate(f):
         fila = []
@@ -59,13 +59,13 @@ def readFile(filename):
                 side += 1
             elif cell == "3":
                 fila.append(Object((x*K,y*K)))
-                nPiñas += 1
-                list_piñas.append((x*K,y*K))
+                nPinas += 1
+                list_pinas.append((x*K,y*K))
             else:
                 fila.append(cell)
         matrix.append(fila)
     f.close()
-    return matrix,players,nPiñas,list_piñas
+    return matrix,players,nPinas,list_pinas
 
 #------------------------------------------------------------------------------
 
@@ -92,7 +92,7 @@ class Player():
     def __str__(self):
         return f"P<{SIDES[self.side], self.pos}>"
 
-    def paint(self,screen, piñas):
+    def paint(self,screen, pinas):
         if (self.side) == 0:
             screen.blit(self.img[self.dir], (self.pos[0]+3,self.pos[1]+3))
         else:
@@ -105,7 +105,7 @@ class Wall():
         self.img = load_image("wall.png",K)
 
 
-    def paint(self,screen, piñas):
+    def paint(self,screen, pinas):
         screen.blit(self.img, (self.pos[0],self.pos[1]))
 
 
@@ -116,9 +116,9 @@ class Object():
         self.img = load_image("pineapple.png",20,True)
 
 
-    def paint(self,screen, piñas):
-        ind = piñas.index(tuple(self.pos))
-        if piñas[ind] != -1:
+    def paint(self,screen, pinas):
+        ind = pinas.index(tuple(self.pos))
+        if pinas[ind] != -1:
             screen.blit(self.img, (self.pos[0]+10,self.pos[1]+10))
 
 
@@ -126,7 +126,7 @@ class Game():
     def __init__(self):
         self.score = [0,0]
         self.running = True
-        self.matrix, self.players, self.nPiñas, self.list_piñas = readFile(filename)
+        self.matrix, self.players, self.nPinas, self.list_pinas = readFile(filename)
         self.size = [K*len(self.matrix[0]), K*len(self.matrix)]
 
     def get_player(self, side):
@@ -147,13 +147,13 @@ class Game():
     def set_matrix(self, matrix):
         self.matrix = matrix
     
-    def set_list_piñas(self, list_piñas):
-        self.list_piñas = list_piñas
+    def set_list_pinas(self, list_pinas):
+        self.list_pinas = list_pinas
 
     def update(self, gameinfo):
         self.set_pos_player(YELLOW, gameinfo['pos_left_player'])
         self.set_pos_player(BLUE, gameinfo['pos_right_player'])
-        self.set_list_piñas(gameinfo['list_piñas'])
+        self.set_list_pinas(gameinfo['list_pinas'])
         self.set_dir_player(YELLOW, gameinfo['dir_yellow'])
         self.set_dir_player(BLUE, gameinfo['dir_blue'])
         self.set_score(gameinfo['score'])
@@ -195,16 +195,15 @@ class Display():
 
 
     def refresh(self):
-        pygame.display.flip()
         self.screen.fill((75, 75, 75))
         for line in self.game.matrix:
             for cosa in line:
                 try:
-                    cosa.paint(self.screen, self.game.list_piñas)
+                    cosa.paint(self.screen, self.game.list_pinas)
                 except:
                     pass
         for p in self.game.players:
-            p.paint(self.screen, self.game.list_piñas)
+            p.paint(self.screen, self.game.list_pinas)
 
         self.screen.blit(load_image("pineapple.png",20,True),(K//4,K//4))
         font = pygame.font.Font('freesansbold.ttf', 4*K//5)
@@ -219,6 +218,7 @@ class Display():
         textRect1 = text1.get_rect()
         textRect1.center = (self.game.size[0] - font.size(t1)[0]//2 - 25 ,font.size(t)[1]//2 + 5)
         self.screen.blit(text1, textRect1)
+        pygame.display.flip()
 
 
     def tick(self):
@@ -228,6 +228,23 @@ class Display():
     def quit():
         pygame.quit()
 
+
+def won(ganador, display):
+    display.screen.fill((75, 75, 75))
+    font = pygame.font.Font('freesansbold.ttf', K)
+    color = (255,255,150)
+    t = "EL GANADOR ES YELLOW"
+    if (ganador == "EMPATE"):
+        t = "EMPATE!!"
+        color = (190,229,176)
+    elif (ganador == "BLUE"):
+        color = (150,200,250)
+        t = "EL GANADOR ES BLUE"
+    text = font.render(t, True, color)
+    textRect = text.get_rect()
+    textRect.center = (display.game.size[0]//2, display.game.size[1]//2)
+    display.screen.blit(text, textRect)
+    pygame.display.flip()
 
 def main(ip_address,port):
     try:
@@ -249,12 +266,14 @@ def main(ip_address,port):
                 display.refresh()
                 display.tick()
 
-            ganador = YELLOW
+            ganador = "YELLOW"
             if (game.score[0] < game.score[1]):
-                ganador = BLUE
+                ganador = "BLUE"
+                print("El ganador es " + ganador)
             elif (game.score[0] == game.score[1]):
                 ganador = "EMPATE"
-            print("El ganador es " + str(ganador))
+                print("EMPATE!")
+            won(ganador, display)
             time.sleep(5)
     except:
         traceback.print_exc()

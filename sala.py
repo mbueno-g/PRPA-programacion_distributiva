@@ -56,16 +56,16 @@ class Player():
         return False
       
         
-    def move(self, matrix, points, piÃ±as):
+    def move(self, matrix, points, pinas):
         if self.canMove(matrix):
             d = directions[self.dir]
             self.pos = [self.pos[0]+K*d[0],self.pos[1]+K*d[1]]
             #o = matrix[(self.pos[1] + K//2)//K][(self.pos[0] +K//2)//K]
             o = matrix[(self.pos[1])//K][(self.pos[0])//K]
-            if (type(o) == type(Object([0,0])) and tuple(self.pos) in piÃ±as):
+            if (type(o) == type(Object([0,0])) and tuple(self.pos) in pinas):
                 points[self.side] += 1
-                ind = piÃ±as.index(tuple(self.pos))
-                piÃ±as[ind] = -1
+                ind = pinas.index(tuple(self.pos))
+                pinas[ind] = -1
         
     def __str__(self):
         return f"P<{SIDESSTR[self.side]}, {self.pos}>"
@@ -87,8 +87,8 @@ class Game():
         self.score = manager.list([0,0])
         self.running = Value('i', 1) # 1 running
         self.lock = Lock()
-        m, players, self.nPiÃ±as, list_piÃ±as = readFile(filename)
-        self.list_piÃ±as = manager.list(list_piÃ±as)
+        m, players, self.nPinas, list_pinas = readFile(filename)
+        self.list_pinas = manager.list(list_pinas)
         self.size = [K*len(m[0]), K*len(m)]
         self.matrix = manager.list([manager.list(lista) for lista in m])
         self.players = manager.list([Player(YELLOW,players[0]), Player(BLUE,players[1])])
@@ -99,15 +99,15 @@ class Game():
     def get_score(self):
         return list(self.score)
     
-    def get_list_piÃ±as(self):
-        return list(self.list_piÃ±as)
+    def get_list_pinas(self):
+        return list(self.list_pinas)
 
     def is_running(self):
         return self.running.value == 1
 
     def isComplete(self):
         self.lock.acquire()
-        boolean = self.score[0] + self.score[1] == self.nPiÃ±as
+        boolean = self.score[0] + self.score[1] == self.nPinas
         self.lock.release()
         return boolean     
             
@@ -118,7 +118,7 @@ class Game():
         self.lock.acquire()
         pl = self.players[player]
         pl.dir = direction
-        pl.move(self.matrix, self.score, self.list_piÃ±as)
+        pl.move(self.matrix, self.score, self.list_pinas)
         self.players[player] = pl
         self.lock.release()
 
@@ -126,7 +126,7 @@ class Game():
         info = {
             'pos_left_player': self.players[YELLOW].get_pos(),
             'pos_right_player': self.players[BLUE].get_pos(),
-            'list_piÃ±as' : self.get_list_piÃ±as(),
+            'list_pinas' : self.get_list_pinas(),
             'dir_yellow' : self.players[YELLOW].get_dir(),
             'dir_blue' : self.players[BLUE].get_dir(),
             'score': list(self.score),
@@ -170,8 +170,8 @@ def player(side, conn, game):
 def readFile(filename):
     matrix = []
     players = []
-    nPiÃ±as = 0
-    list_piÃ±as = []
+    nPinas = 0
+    list_pinas = []
     f = open(dirMap + filename, "r")
     for y,line in enumerate(f):
         fila = []
@@ -184,13 +184,13 @@ def readFile(filename):
                 players.append([x*K,y*K])
             elif cell == "3":
                 fila.append(Object((x*K,y*K)))
-                nPiÃ±as += 1
-                list_piÃ±as.append((x*K,y*K))
+                nPinas += 1
+                list_pinas.append((x*K,y*K))
             else:
                 fila.append(cell)
         matrix.append(fila)
     f.close()
-    return matrix,players,nPiÃ±as,list_piÃ±as
+    return matrix,players,nPinas,list_pinas
 
 #------------------------------------------------------------------------------
 #Main
