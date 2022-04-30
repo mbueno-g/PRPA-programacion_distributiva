@@ -16,7 +16,35 @@ filename = "mapa1.txt"
 directions = {"N":[0,-1],"S":[0,1],"E":[1,0],"O":[-1,0],"C":[0,0]}
 
 #------------------------------------------------------------------------------
-#CLASES 
+#Cargar el mapa y hacer la matriz del juego
+
+def readFile(filename):
+    matrix = []
+    players = []
+    nPinas = 0
+    list_pinas = []
+    f = open(dirMap + filename, "r")
+    for y,line in enumerate(f):
+        fila = []
+        cells = line.strip("\n")
+        for x,cell in enumerate(cells):
+            if cell == "1":
+                fila.append(Wall((x*K,y*K)))
+            elif cell == "2":
+                fila.append(cell)
+                players.append([x*K,y*K])
+            elif cell == "3":
+                fila.append(Object((x*K,y*K)))
+                nPinas += 1
+                list_pinas.append((x*K,y*K))
+            else:
+                fila.append(cell)
+        matrix.append(fila)
+    f.close()
+    return matrix,players,nPinas,list_pinas
+
+#------------------------------------------------------------------------------
+#Clases: Player, Wall, Object, Game
 
 class Player():
     def __init__(self, side,p):
@@ -55,12 +83,10 @@ class Player():
                 return True
         return False
       
-        
     def move(self, matrix, points, pinas):
         if self.canMove(matrix):
             d = directions[self.dir]
             self.pos = [self.pos[0]+K*d[0],self.pos[1]+K*d[1]]
-            #o = matrix[(self.pos[1] + K//2)//K][(self.pos[0] +K//2)//K]
             o = matrix[(self.pos[1])//K][(self.pos[0])//K]
             if (type(o) == type(Object([0,0])) and tuple(self.pos) in pinas):
                 points[self.side] += 1
@@ -138,7 +164,7 @@ class Game():
         return f"G<{self.players[YELLOW]}:{self.players[BLUE]}:{self.running.value}>"
 
 #------------------------------------------------------------------------------
-#FunciÃ³n de procesos
+#Función de procesos
 
 def player(side, conn, game):
     try:
@@ -164,33 +190,6 @@ def player(side, conn, game):
         conn.close()
     finally:
         print(f"Game ended {game}")
-
-#------------------------------------------------------------------------------
-
-def readFile(filename):
-    matrix = []
-    players = []
-    nPinas = 0
-    list_pinas = []
-    f = open(dirMap + filename, "r")
-    for y,line in enumerate(f):
-        fila = []
-        cells = line.strip("\n")
-        for x,cell in enumerate(cells):
-            if cell == "1":
-                fila.append(Wall((x*K,y*K)))
-            elif cell == "2":
-                fila.append(cell)
-                players.append([x*K,y*K])
-            elif cell == "3":
-                fila.append(Object((x*K,y*K)))
-                nPinas += 1
-                list_pinas.append((x*K,y*K))
-            else:
-                fila.append(cell)
-        matrix.append(fila)
-    f.close()
-    return matrix,players,nPinas,list_pinas
 
 #------------------------------------------------------------------------------
 #Main
@@ -219,7 +218,6 @@ def main(ip_address, port):
     except Exception as e:
         traceback.print_exc()
 
-#------------------------------------------------------------------------------
 
 if __name__=='__main__':
     ip_address = "127.0.0.1"
