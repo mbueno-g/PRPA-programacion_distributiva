@@ -1,10 +1,3 @@
-# -*- coding: utf-8 -*-
-"""
-Created on Thu Apr  7 11:01:17 2022
-
-@author: Marcos
-"""
-
 import pygame
 from pygame.locals import *
 import os
@@ -191,8 +184,3 @@ def main():
         
 if __name__ == "__main__":
     main()
-    """
-    pygame.init()
-    mapa = readFile(filename)
-    print(mapa)
-    """
