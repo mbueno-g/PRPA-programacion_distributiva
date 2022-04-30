@@ -22,7 +22,7 @@ filename = "mapa1.txt"
 directions = {"N":[0,-1],"S":[0,1],"E":[1,0],"O":[-1,0],"C":[0,0]}
 
 #------------------------------------------------------------------------------
-#Para cargar y reescalar las imÃ¡genes
+#Para cargar y reescalar las imágenes
 
 def load_image(nombre,fit, alpha=False):
     try:
@@ -68,6 +68,7 @@ def readFile(filename):
     return matrix,players,nPinas,list_pinas
 
 #------------------------------------------------------------------------------
+# CLASES : Player, Wall, Object, Game, Display
 
 class Player():
     def __init__(self, pos, side):
@@ -104,7 +105,6 @@ class Wall():
         self.pos = pos
         self.img = load_image("wall.png",K)
 
-
     def paint(self,screen, pinas):
         screen.blit(self.img, (self.pos[0],self.pos[1]))
 
@@ -114,7 +114,6 @@ class Object():
         self.pos = pos
         self.taken = False
         self.img = load_image("pineapple.png",20,True)
-
 
     def paint(self,screen, pinas):
         ind = pinas.index(tuple(self.pos))
@@ -168,6 +167,7 @@ class Game():
     def __str__(self):
         return f"G<{self.players[YELLOW]}:{self.players[BLUE]}>"
 
+
 class Display():
     def __init__(self, game):
         self.game = game
@@ -192,7 +192,6 @@ class Display():
             elif event.type == pygame.QUIT:
                 events.append("quit")
         return events
-
 
     def refresh(self):
         self.screen.fill((75, 75, 75))
@@ -228,6 +227,8 @@ class Display():
     def quit():
         pygame.quit()
 
+#------------------------------------------------------------------------------
+# Establecer ganador y pintar imagen del final
 
 def won(ganador, display):
     display.screen.fill((75, 75, 75))
@@ -245,6 +246,8 @@ def won(ganador, display):
     textRect.center = (display.game.size[0]//2, display.game.size[1]//2)
     display.screen.blit(text, textRect)
     pygame.display.flip()
+
+#------------------------------------------------------------------------------
 
 def main(ip_address,port):
     try:
@@ -265,7 +268,6 @@ def main(ip_address,port):
                 game.update(gameinfo)
                 display.refresh()
                 display.tick()
-
             ganador = "YELLOW"
             if (game.score[0] < game.score[1]):
                 ganador = "BLUE"
