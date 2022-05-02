@@ -2,6 +2,7 @@ import pygame
 from pygame.locals import *
 import os
 import sys
+import time
 
 K = 30
 
@@ -21,30 +22,31 @@ def load_image(nombre,fit, alpha=False):
     except:
         print("Error, no se puede cargar la imagen: " + nombre)
         sys.exit(1)
-    #if alpha is True:
-        #image = image.convert_alpha()
-    #else:
-        #image = image.convert()
     return image
 
 #------------------------------------------------------------------------------
 #Clases de objetos del juego
 
 class Player():
-    def __init__(self,pos):
+    def __init__(self,pos,i):
         self.pos = pos
         self.dir = "C"
-        self.img = {d:load_image("pacman{}.png".format(d),24,True) for d in ["N","S","E","O","C"]}
+        self.id = i
+        if i == 1:
+            self.name = ""
+        else:
+            self.name = "2"
+        self.img = {d:load_image("pacman{}{}.png".format(self.name,d),24,True) for d in ["N","S","E","O","C"]}
         self.points = 0
         
     def paint(self,screen):
         screen.blit(self.img[self.dir], (self.pos[0]+3,self.pos[1]+3))
-        screen.blit(load_image("pineapple.png",20,True),(K//4,K//4))
+        screen.blit(load_image("pineapple.png",20,True),((self.id -1)*screen.get_size()[0]*10//11 + K//4,K//4))
         font = pygame.font.Font('freesansbold.ttf', 4*K//5)
         t = "x" + str(self.points)
         text = font.render(t, True, (255,255,150))
         textRect = text.get_rect()
-        textRect.center = (font.size(t)[0]//2 + 25,font.size(t)[1]//2 + 5)
+        textRect.center = ((self.id -1)*screen.get_size()[0] + ((-1)**(3-self.id))*(font.size(t)[0]//2 + 25),font.size(t)[1]//2 + 5)
         screen.blit(text, textRect)
     
     def canMove(self,matrix):
@@ -94,7 +96,7 @@ class Object():
         
     def paint(self,screen):
         if not(self.taken):
-            screen.blit(self.img, (self.pos[0]+10,self.pos[1]+10))
+            screen.blit(self.img, (self.pos[0]+5,self.pos[1]+5))
 
 #------------------------------------------------------------------------------
 #Cargar el mapa y hacer la matriz del juego
@@ -103,6 +105,7 @@ def readFile(filename):
     matrix = []
     players = []
     nPiñas = 0
+    counter = 0
     f = open(dirMap + filename, "r")
     for y,line in enumerate(f):
         fila = []
@@ -112,7 +115,8 @@ def readFile(filename):
                 fila.append(Wall((x*K,y*K)))
             elif cell == "2":
                 fila.append(cell)
-                players.append(Player((x*K,y*K)))
+                counter += 1
+                players.append(Player((x*K,y*K),counter))
             elif cell == "3":
                 fila.append(Object((x*K,y*K)))
                 nPiñas += 1
@@ -134,6 +138,23 @@ def paintAll(screen,mapa,players):
                 pass
     for p in players:
         p.paint(screen)
+        
+def won(ganador, screen):
+    screen.fill((75, 75, 75))
+    font = pygame.font.Font('freesansbold.ttf', K)
+    color = (255,255,150)
+    t = "EL GANADOR ES YELLOW"
+    if (ganador == "EMPATE"):
+        t = "EMPATE!!"
+        color = (190,229,176)
+    elif (ganador == "BLUE"):
+        color = (150,200,250)
+        t = "EL GANADOR ES BLUE"
+    text = font.render(t, True, color)
+    textRect = text.get_rect()
+    textRect.center = (screen.get_width()//2, screen.get_height()//2)
+    screen.blit(text, textRect)
+    pygame.display.flip()
 
 #------------------------------------------------------------------------------
 #Main
@@ -167,17 +188,36 @@ def main():
                     players[0].dir = "E"
                 elif event.key == K_LEFT:
                     players[0].dir = "O"
+                if event.key == K_s:
+                    players[1].dir = "S"
+                elif event.key == K_w:
+                    players[1].dir = "N"
+                elif event.key == K_d:
+                    players[1].dir = "E"
+                elif event.key == K_a:
+                    players[1].dir = "O"
         
         players[0].move(mapa)
+        players[1].move(mapa)
         pygame.display.flip()
         screen.fill((75, 75, 75))
         paintAll(screen,mapa,players)
         
-        if players[0].points == nPiñas:
+        if players[0].points + players[1].points == nPiñas:
             pygame.display.flip()
             screen.fill((75, 75, 75))
             paintAll(screen,mapa,players)
-            break
+            ganador = "YELLOW"
+            if (players[0].points < players[1].points):
+                ganador = "BLUE"
+                print("El ganador es " + ganador)
+            elif (players[0].points == players[1].points):
+                ganador = "EMPATE"
+                print("EMPATE!")
+            won(ganador, screen)
+            time.sleep(5)
+            pygame.quit()
+            sys.exit()
         #accesories(screen,M,time)
 
 #------------------------------------------------------------------------------
