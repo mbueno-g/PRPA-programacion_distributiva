@@ -88,7 +88,8 @@ def visualizer(mapa):
                 color = (255,255,0)
             lienzo.rectangle([i*10,j*10,(i+1)*10,(j+1)*10],color)
     return img
-            
+
+"""         
 if __name__ == "__main__":
     m = main((29,15),16)
     for line in m:
@@ -97,3 +98,4 @@ if __name__ == "__main__":
         print()
     img = visualizer(m)
     img.show()
+"""

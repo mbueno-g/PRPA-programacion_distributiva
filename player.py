@@ -31,10 +31,6 @@ def load_image(nombre,fit, alpha=False):
     except:
         print("Error, no se puede cargar la imagen: " + nombre)
         sys.exit(1)
-    #if alpha is True:
-        #image = image.convert_alpha()
-    #else:
-        #image = image.convert()
     return image
 
 #------------------------------------------------------------------------------
@@ -118,7 +114,7 @@ class Object():
     def paint(self,screen, pinas):
         ind = pinas.index(tuple(self.pos))
         if pinas[ind] != -1:
-            screen.blit(self.img, (self.pos[0]+10,self.pos[1]+10))
+            screen.blit(self.img, (self.pos[0]+5,self.pos[1]+5))
 
 
 class Game():
